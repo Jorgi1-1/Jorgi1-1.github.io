@@ -16,7 +16,7 @@ Next.js 16 (App Router, export estático) · React 19 · TypeScript · Tailwind 
 
 ## Desarrollo
 
-Requiere Node.js 20 o superior.
+Requiere Node.js 24 (ver `.nvmrc`).
 
 ```bash
 npm install
