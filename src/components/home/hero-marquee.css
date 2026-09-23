@@ -1,0 +1,220 @@
+/* Light theme: cream ground, near-black ink. Dark theme overrides below
+   with a near-black ground and lime accent. */
+.hero-marquee {
+  --home-bg: #f4efe2;
+  --home-accent: #16130f;
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(0.1rem, 0.6vw, 0.35rem);
+  background: var(--home-bg);
+  /* --totem-hover-accent is set on the root on stripe hover (totem-hover.ts). */
+  color: var(--totem-hover-accent, var(--home-accent));
+  transition: color 0.5s ease, background-color 0.3s ease;
+}
+
+.dark .hero-marquee {
+  --home-bg: #222022;
+  --home-accent: #c3d809;
+}
+
+.hero-marquee-row {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  font-weight: 700;
+  line-height: 0.86;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  /* --hero-row-font-size is fitted in JS; clamp() is the pre-hydration
+     fallback, kept small enough not to overflow. */
+  font-size: var(--hero-row-font-size, clamp(1.8rem, 8vw, 6rem));
+  white-space: nowrap;
+  padding-inline: clamp(1rem, 4vw, 3rem);
+  transition: color 0.5s ease, stroke 0.5s ease, opacity 0.5s ease;
+}
+
+/* The real headline (row 0): heavier weight. The mask pass reuses it. */
+.hero-marquee-row--primary {
+  font-weight: 900;
+}
+
+/* Decorative rows recede. Not applied to the SVG mask, whose alpha sets
+   how strongly the shader shows through. */
+.hero-marquee-row--recede {
+  opacity: 0.42;
+}
+
+/* Once the shader is running, the ink fill turns transparent: the masked
+   shader becomes the fill and an SVG stroke pass draws the outline. */
+.hero-marquee--shaded .hero-marquee-row {
+  color: transparent;
+  z-index: 0;
+}
+
+.hero-fill {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+/* Glyph-shaped windows onto .hero-fill, rendered whenever motion is allowed. */
+.hero-knockout {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.hero-knockout-ground {
+  fill: var(--home-bg);
+}
+
+/* No-WebGPU stand-in for the shader. Only `transform` animates; oversized
+   so the rotation never exposes a corner. */
+.hero-fill-fallback {
+  position: absolute;
+  inset: 0;
+  background: #16130f;
+}
+
+.hero-fill-fallback-swirl {
+  position: absolute;
+  inset: -100%;
+  background:
+    radial-gradient(14% 10% at 44% 46%, rgb(244 239 226 / 0.9) 0%, transparent 100%),
+    radial-gradient(10% 8% at 53% 41%, rgb(59 130 246 / 0.22) 0%, transparent 100%),
+    radial-gradient(10% 8% at 47% 58%, rgb(168 85 247 / 0.18) 0%, transparent 100%),
+    radial-gradient(8% 6% at 58% 50%, rgb(34 197 94 / 0.14) 0%, transparent 100%),
+    conic-gradient(
+      from 20deg at 50% 50%,
+      #f4efe2 0deg,
+      #6b6558 50deg,
+      #16130f 100deg,
+      #16130f 150deg,
+      #cfc8b6 205deg,
+      #f4efe2 245deg,
+      #3a352d 305deg,
+      #f4efe2 360deg
+    );
+  animation: hero-fill-swirl 22s linear infinite;
+  will-change: transform;
+}
+
+.hero-fill-fallback-flutes {
+  position: absolute;
+  inset: -20%;
+  background: repeating-linear-gradient(
+    108deg,
+    rgb(255 255 255 / 0.09) 0 1.5px,
+    transparent 1.5px 16px,
+    rgb(0 0 0 / 0.13) 16px 17.5px,
+    transparent 17.5px 30px
+  );
+  animation: hero-fill-flutes 9s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* The totem's color washing through the letters, the fallback's version of
+   the shader's ChromaFlow tint. */
+.hero-fill-fallback::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(80% 70% at 50% 50%, var(--totem-hover-accent, transparent) 0%, transparent 75%);
+  opacity: 0;
+  transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root[data-totem-wave] .hero-fill-fallback::after {
+  opacity: 0.6;
+}
+
+@keyframes hero-fill-swirl {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes hero-fill-flutes {
+  from {
+    transform: translate3d(-4%, 0, 0);
+  }
+  to {
+    transform: translate3d(4%, 0, 0);
+  }
+}
+
+:root[data-hero-covered] .hero-fill-fallback-swirl,
+:root[data-hero-covered] .hero-fill-fallback-flutes {
+  animation-play-state: paused;
+}
+
+.hero-marquee-name {
+  position: absolute;
+  bottom: clamp(1.25rem, 4vw, 2.5rem);
+  left: clamp(1rem, 4vw, 3rem);
+  font-family: var(--font-sans);
+  font-size: clamp(0.8rem, 1.4vw, 1rem);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  opacity: 0.7;
+  z-index: 3;
+  transition: color 0.5s ease;
+}
+
+/* Totem wave: a diagonal band of the section color sweeping across the
+   background, triggered by `data-totem-wave` on the root. Transform and
+   opacity only (paint animations over the shader leave ghosts), driven by
+   transitions so leaving mid-sweep reverses smoothly. */
+.hero-wave {
+  opacity: 0;
+  transform-box: fill-box;
+  transform: translate(30%, 30%);
+  transition:
+    opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hero-wave-stop--clear {
+  stop-color: var(--totem-wave-color, transparent);
+  stop-opacity: 0;
+}
+
+.hero-wave-stop--peak {
+  stop-color: var(--totem-wave-color, transparent);
+  stop-opacity: 0.88;
+}
+
+:root[data-totem-wave] .hero-wave {
+  opacity: 0.75;
+  transform: translate(-30%, -30%);
+}
+
+/* Momentary reset used by totem-hover.ts to replay the sweep between stripes. */
+:root[data-totem-wave][data-totem-wave-restart] .hero-wave {
+  transition: none;
+  opacity: 0;
+  transform: translate(30%, 30%);
+}
+
+/* Covered by an open section: stop compositing the SVG layer. The WebGPU
+   canvas stays mounted because hiding it doesn't reliably resume. */
+:root[data-hero-covered] .hero-knockout {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-wave {
+    display: none;
+  }
+}

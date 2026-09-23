@@ -1,0 +1,117 @@
+/* Entrance + ambient motion for the payius hero.
+   Kept in a stylesheet because the keyframes are shared by several elements
+   and read far better here than as Tailwind arbitrary values. */
+
+.payius-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.payius-reveal[data-shown="true"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* The particle system scales up after the copy has settled. */
+.payius-orbit {
+  opacity: 0;
+  transform: scale(0.85);
+  transition:
+    opacity 800ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 800ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: 320ms;
+}
+
+.payius-orbit[data-shown="true"] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@keyframes payius-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes payius-spin-reverse {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+/* `view-box` + explicit centre keeps the rotation centred on the viewBox
+   rather than each ring's own tight bounding box. */
+.payius-ring {
+  transform-box: view-box;
+  transform-origin: 260px 260px;
+  animation: payius-spin var(--ring-duration, 32s) linear infinite;
+}
+
+.payius-ring--reverse {
+  animation-name: payius-spin-reverse;
+}
+
+@keyframes payius-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    r: 3;
+  }
+  50% {
+    opacity: 1;
+    r: 4.5;
+  }
+}
+
+.payius-node {
+  animation: payius-pulse var(--node-duration, 3.2s) ease-in-out infinite;
+  animation-delay: var(--node-delay, 0s);
+}
+
+/* Horizontal trailing beam expanding left to right. */
+@keyframes payius-beam {
+  0% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  70% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+.payius-beam {
+  transform-origin: left center;
+  animation: payius-beam 4.5s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payius-reveal,
+  .payius-orbit {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .payius-ring,
+  .payius-node,
+  .payius-beam {
+    animation: none;
+  }
+
+  .payius-beam {
+    transform: scaleX(1);
+    opacity: 0.6;
+  }
+}

@@ -1,0 +1,495 @@
+.totem-frame {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 30;
+  overflow: hidden;
+  box-shadow: 0 10px 34px -12px rgb(0 0 0 / 0.4);
+  /* Explicit baseline: never implicitly transparent regardless of what any
+     tween last touched. */
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.totem-track {
+  display: flex;
+  width: 200%;
+  height: 100%;
+}
+
+/* Animated by a GSAP tween held in a ref, not a CSS animation, so React
+   re-renders can't restart it. */
+
+.totem-stripe {
+  position: relative;
+  /* 2× SECTIONS.length: the track holds two identical copies for the
+     seamless marquee loop (5 sections → 10 stripes). */
+  flex: 0 0 calc(100% / 10);
+  min-width: 0;
+  height: 100%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  transition: filter 0.2s ease;
+}
+
+.totem-stripe:focus-visible {
+  filter: brightness(1.1);
+}
+
+/* Label color is set inline per stripe (getReadableTextColor). */
+.totem-stripe-label {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(4px) scale(0.92);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+  pointer-events: none;
+}
+
+.totem-stripe:focus-visible .totem-stripe-label {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Hover reveals only exist where hover does: on touch a tapped :hover
+   sticks until the next tap somewhere else. */
+@media (hover: hover) {
+  .totem-stripe:hover {
+    filter: brightness(1.1);
+  }
+
+  .totem-stripe:hover .totem-stripe-label {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Touch has no hover preview, so labels are always visible and wrap to
+   two lines on narrow stripes. */
+@media (hover: none) {
+  .totem-stripe {
+    padding-inline: 0.25rem;
+  }
+
+  .totem-stripe-label {
+    opacity: 1;
+    transform: none;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.1;
+    /* Sized so the longest single word ("CONTACTO") still fits a ~68px
+       stripe: labels may wrap at spaces, never mid-word. */
+    font-size: 0.625rem;
+    letter-spacing: 0.01em;
+  }
+
+  .totem-stripe:active {
+    filter: brightness(1.12);
+  }
+}
+
+/* Pre-hydration intro state (set by HomePage's inline script), matching
+   what the GSAP intro sets on mount so slow hydration never flashes. */
+:root[data-home-intro] .totem-frame {
+  width: 100vw;
+  height: 100vh;
+  background-color: #0a0a0a;
+}
+
+:root[data-home-intro] .totem-stripe {
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+/* Reveal circle that grows from the clicked stripe. Sits between the nav
+   (z 30) and the section overlay (z 45). left/top place its center on the
+   origin via the negative margin. Only `transform: scale` animates, so the
+   compositor handles it at any viewport size. */
+.section-reveal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 100px;
+  margin: -50px 0 0 -50px;
+  border-radius: 50%;
+  z-index: 44;
+  transform: scale(0);
+  pointer-events: none;
+}
+
+/* Full-viewport from the start so the copy never reflows during the reveal. */
+.section-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+}
+
+.section-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+}
+
+/* Brief beat between the reveal and the content (LOADER_HOLD_MS). */
+.section-overlay-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Full-screen so the title's particles can scatter across the viewport
+   before converging on .section-overlay-title-particle. */
+.section-overlay-title-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.section-overlay-content {
+  /* Sized to the viewport from the first frame so the copy is already laid
+     out at its final position and never reflows as the color grows. */
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 100vw;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  /* "safe" keeps the top reachable when content overflows (landscape phones). */
+  justify-content: safe center;
+  gap: 1.25rem;
+  padding: clamp(2rem, 8vw, 6rem);
+  /* Room for the close button above the content, and for notches. */
+  padding-block-start: max(clamp(4.5rem, 10vw, 6rem), env(safe-area-inset-top));
+  padding-inline: max(clamp(1.5rem, 8vw, 6rem), env(safe-area-inset-left)) max(clamp(1.5rem, 8vw, 6rem), env(safe-area-inset-right));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Neon on its own base color has low contrast; a tight dark contour
+   carries legibility, like the dark outline on real neon signage. */
+.section-overlay-body,
+.section-overlay-tag {
+  text-shadow:
+    0 0 2px rgb(0 0 0 / 0.7),
+    0 0 6px rgb(0 0 0 / 0.45);
+}
+
+.section-overlay-close {
+  /* Left, not right: the site's theme toggle is fixed top-right and would
+     otherwise collide with this button while a section fills the screen. */
+  position: absolute;
+  top: clamp(1rem, 4vw, 2rem);
+  left: clamp(1rem, 4vw, 2rem);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  border: 1.5px solid currentColor;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+@media (hover: hover) {
+  .section-overlay-close:hover {
+    background: color-mix(in srgb, currentColor 14%, transparent);
+  }
+}
+
+.section-overlay-close:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* Neon glow plus an inset dark ring for contrast. The SVG icon gets its
+   contour from drop-shadow, since text-shadow doesn't apply to it. */
+.section-overlay-close {
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.45),
+    0 0 12px color-mix(in srgb, currentColor 55%, transparent);
+}
+
+.section-overlay-close svg {
+  filter: drop-shadow(0 0 1.5px rgb(0 0 0 / 0.75));
+}
+
+/* Reserves one line of the particle title; keep in sync with its fontSize. */
+.section-overlay-title-particle {
+  width: 100%;
+  height: clamp(4rem, 14vw, 5.5rem);
+  margin-bottom: -0.25rem;
+}
+
+/* Hidden until handleTitleSettled adds .neon-flicker-in. */
+.section-overlay-body {
+  max-width: 46rem;
+  font-size: clamp(1rem, 1.6vw, 1.15rem);
+  line-height: 1.6;
+  opacity: 0;
+}
+
+.section-overlay-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  background: var(--panel-fg);
+  /* Contrast-picked against the neon fill, not the panel background. */
+  color: var(--panel-ink);
+  box-shadow:
+    0 0 16px color-mix(in srgb, var(--panel-fg) 70%, transparent),
+    0 0 3px color-mix(in srgb, var(--panel-fg) 90%, transparent);
+  transition: opacity 0.2s ease;
+}
+
+/* Full-width is the thumb-friendly CTA in a phone's single column; past
+   that it's a pill the size of its label, not a 46rem bar. */
+@media (min-width: 40rem) {
+  .section-overlay-cta {
+    align-self: flex-start;
+  }
+}
+
+@media (hover: hover) {
+  .section-overlay-cta:hover {
+    opacity: 0.85;
+  }
+}
+
+.section-overlay-cta:active {
+  opacity: 0.8;
+}
+
+.section-overlay-cta:focus-visible {
+  outline: 2px solid var(--panel-fg);
+  outline-offset: 3px;
+}
+
+.section-overlay-tag {
+  border: 1.5px solid currentColor;
+  border-radius: 9999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  /* Faint tint for weight; the inset dark ring separates the neon border
+     from a same-hue background. */
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.35),
+    0 0 10px color-mix(in srgb, currentColor 45%, transparent);
+  transition: transform 0.15s ease;
+}
+
+/* Per-tag replay of the neon power-on flicker. steps() makes each stage snap. */
+@keyframes tag-flicker {
+  0% {
+    filter: brightness(1);
+  }
+  15% {
+    filter: brightness(2.2);
+  }
+  30% {
+    filter: brightness(0.7);
+  }
+  45% {
+    filter: brightness(2);
+  }
+  100% {
+    filter: brightness(1.6);
+  }
+}
+
+@media (hover: hover) {
+  .section-overlay-tag:hover {
+    animation: tag-flicker 0.4s steps(1, end) forwards;
+    transform: translateY(-2px);
+  }
+}
+
+.section-overlay-tag:focus-visible {
+  animation: tag-flicker 0.4s steps(1, end) forwards;
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Oversized, faint section name behind the content, echoing the hero's
+   type-as-texture. Hidden on narrow screens where it would crowd the CTA. */
+.section-overlay-watermark {
+  position: absolute;
+  right: clamp(-1.5rem, 1vw, 1rem);
+  bottom: clamp(-3rem, -1vw, 1.5rem);
+  z-index: 0;
+  max-width: 60vw;
+  font-size: clamp(3.5rem, 11vw, 9rem);
+  font-weight: 900;
+  line-height: 0.86;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  text-align: right;
+  opacity: 0.12;
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (max-width: 640px) {
+  .section-overlay-watermark {
+    display: none;
+  }
+}
+
+/* Single-statement sections (About) set their line at display scale. */
+.section-overlay-statement {
+  font-size: clamp(1.75rem, 4.4vw, 3.25rem);
+  font-weight: 700;
+  line-height: 1.15;
+  max-width: 22ch;
+}
+
+/* Lead-in sentence before a tag list, in the body's reading voice. */
+.section-overlay-lead {
+  font-size: clamp(1rem, 1.6vw, 1.15rem);
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+/* Sub-group name inside a tag list, one step quieter than the lead. */
+.section-overlay-group-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+/* The destination behind a CTA (domain or path), in mono. */
+.section-overlay-meta {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  opacity: 0.75;
+}
+
+/* Neon power-on: a few uneven flashes before holding steady. Triggered
+   once the particle title has formed. */
+@keyframes neon-flicker-in {
+  0% {
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  8% {
+    opacity: 0.15;
+  }
+  12% {
+    opacity: 1;
+  }
+  19% {
+    opacity: 1;
+  }
+  23% {
+    opacity: 0.3;
+  }
+  28% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 1;
+  }
+  48% {
+    opacity: 0.4;
+  }
+  53% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.neon-flicker-in {
+  animation: neon-flicker-in 0.85s steps(1, end) forwards;
+}
+
+/* Accessible nav behind the moving totem, which can't be a reliable focus
+   target. Visually hidden until focused, like a skip link. */
+.totem-a11y-nav {
+  position: fixed;
+  top: 0.75rem;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 60;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.totem-a11y-trigger {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  background: #16130f;
+  color: #f4efe2;
+}
+
+.totem-a11y-trigger:focus-visible {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0.6rem 1.1rem;
+  clip: auto;
+  overflow: visible;
+  border-radius: 9999px;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .totem-stripe,
+  .totem-stripe-label,
+  .section-overlay-close {
+    transition: none !important;
+  }
+
+  /* JS already skips the class under reduced motion; this is a backstop. */
+  .neon-flicker-in {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
