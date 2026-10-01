@@ -1,19 +1,20 @@
-export type SectionId = "about" | "stack" | "kanso" | "galeria" | "contact";
+export type SectionId = "work" | "about" | "stack" | "contact";
 
 export type SectionConfig = {
   id: SectionId;
   label: string;
   color: string;
+  /** What the hero takes on while this stripe is previewed (hover, focus, tap). */
+  hover: string;
 };
 
 type SectionMeta = { id: SectionId; label: string };
 
 const SECTION_META: SectionMeta[] = [
-  { id: "about", label: "Sobre mí" },
+  { id: "work", label: "Work" },
+  { id: "about", label: "About" },
   { id: "stack", label: "Stack" },
-  { id: "kanso", label: "Kanso Studio" },
-  { id: "galeria", label: "Galería" },
-  { id: "contact", label: "Contacto" },
+  { id: "contact", label: "Contact" },
 ];
 
 /**
@@ -21,30 +22,51 @@ const SECTION_META: SectionMeta[] = [
  * clears ~5–7:1 against the dark theme's near-black ground.
  */
 const DARK_COLORS: Record<SectionId, string> = {
+  work: "#917C87",
   about: "#93A29B",
   stack: "#928F91",
-  kanso: "#917C87",
-  galeria: "#8E5572",
   contact: "#B7245C",
 };
 
 /**
  * Same hues as DARK_COLORS, darkened (and resaturated where needed) to
  * clear ~4.7:1 against the light theme's cream ground (#f4efe2). The dark
- * values fall below WCAG AA there for about, stack, and kanso.
+ * values fall below WCAG AA there for work, about, and stack.
  */
 const LIGHT_COLORS: Record<SectionId, string> = {
+  work: "#816172",
   about: "#557063",
   stack: "#6D696C",
-  kanso: "#816172",
-  galeria: "#925172",
   contact: "#B7245C",
 };
+
+/**
+ * The entry wipe's bars in both themes, for the server-rendered intro
+ * (home-page.tsx). The server can't know the theme, so each bar carries both
+ * palettes and CSS picks one from the root's .dark class.
+ */
+export function getIntroStripes() {
+  return SECTION_META.map((meta) => ({
+    id: meta.id,
+    label: meta.label,
+    dark: DARK_COLORS[meta.id],
+    light: LIGHT_COLORS[meta.id],
+    darkInk: getReadableTextColor(DARK_COLORS[meta.id]),
+    lightInk: getReadableTextColor(LIGHT_COLORS[meta.id]),
+  }));
+}
 
 /** Resolves the section list against whichever theme is actually on screen. */
 export function getSections(isDark: boolean): SectionConfig[] {
   const colors = isDark ? DARK_COLORS : LIGHT_COLORS;
-  return SECTION_META.map((meta) => ({ ...meta, color: colors[meta.id] }));
+  return SECTION_META.map((meta) => {
+    const color = colors[meta.id];
+    // A near-gray wave over the dark ground's gray-and-lime outlines reads as
+    // nothing happening; its lit form (Neon White) does. On cream the muted
+    // gray already stands out, and white would vanish.
+    const hover = isDark && hexToHsl(color)[1] < NEAR_GRAY_SATURATION ? getNeonColor(color) : color;
+    return { ...meta, color, hover };
+  });
 }
 
 function relativeLuminance(hex: string): number {
@@ -68,6 +90,9 @@ export function getReadableTextColor(hex: string): string {
   const whiteContrast = contrastRatio(bg, 1);
   return blackContrast >= whiteContrast ? "#16130f" : "#f4efe2";
 }
+
+// Below this saturation a hue can't carry a neon of its own.
+const NEAR_GRAY_SATURATION = 0.06;
 
 function hexToHsl(hex: string): [number, number, number] {
   const [r, g, b] = (hex.replace("#", "").match(/.{2}/g) ?? ["00", "00", "00"]).map(
@@ -114,6 +139,6 @@ function hslToHex(h: number, s: number, l: number): string {
 export function getNeonColor(hex: string): string {
   const [h, s, l] = hexToHsl(hex);
   // A near-gray hue is unstable; use a neon white instead.
-  if (s < 0.06) return "#f2f6ff";
+  if (s < NEAR_GRAY_SATURATION) return "#f2f6ff";
   return hslToHex(h, 1, Math.max(l + 0.22, 0.78));
 }

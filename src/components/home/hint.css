@@ -1,0 +1,157 @@
+/* Affordance hints (hint.tsx). The words rise out of the page letter by
+   letter (SplitText) and sink back out when they go. In an open section
+   they're just text, in the panel's own ink, like the rest of its copy. On
+   the hero, over the busy marquee, a soft clearing opens behind them: a
+   feathered ellipse of the hero's ground that blurs what's under it, with
+   no edge to read as a box. Placed by transform every frame, so the
+   entrance lives on the inner span. Pointer-events off, always. */
+.hint {
+  --hint-bg: #f4efe2;
+  --hint-ink: #16130f;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  pointer-events: none;
+  will-change: transform;
+  transition: opacity 0.2s ease;
+}
+
+.dark .hint--hero {
+  --hint-bg: #222022;
+  --hint-ink: #c3d809;
+}
+
+/* Out of the way while Qull walks or floats over its spot. */
+.hint.is-yielding {
+  opacity: 0;
+  transition-duration: 0.15s;
+}
+
+/* Out at once while a section opens, closes or hands off. */
+:root[data-hints-suspended] .hint {
+  display: none;
+}
+
+.hint-inner {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.55rem;
+  color: var(--hint-ink);
+  transition: color 0.5s ease;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+/* On the hero the words take the hero's accent of the moment, the same one
+   the marquee wears, so a totem wave recolors them along with it. */
+.hint--hero .hint-inner {
+  color: var(--totem-hover-accent, var(--hint-ink));
+}
+
+/* In a section: its neon, with the dark rim every neon gets on its own
+   ground (the Dark Rim Rule), so small type still reads. */
+.hint--panel .hint-inner {
+  text-shadow:
+    0 0 2px rgb(0 0 0 / 0.7),
+    0 0 6px rgb(0 0 0 / 0.45);
+}
+
+.hint--panel .hint-icon {
+  filter: drop-shadow(0 0 1.5px rgb(0 0 0 / 0.75));
+}
+
+/* The clearing (hero only). Wider than the words and fully feathered, so it
+   reads as the marquee going soft around them, not as a patch. */
+.hint--hero .hint-inner::before {
+  content: "";
+  position: absolute;
+  inset: -0.85rem -1.5rem;
+  z-index: -1;
+  background: color-mix(in srgb, var(--hint-bg) 68%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  -webkit-mask-image: radial-gradient(closest-side, #000 50%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 50%, transparent 100%);
+  animation: hint-clear-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hint--hero.is-leaving .hint-inner::before {
+  animation: hint-clear-out 0.35s ease-in 0.12s both;
+}
+
+/* SplitText sets overflow: hidden on the label, so each letter rises from
+   below its own line; the room below keeps descenders whole. */
+/* Clipped, so the letters rise out of the line and sink back into it. */
+.hint-label {
+  display: inline-block;
+  overflow: hidden;
+  padding-bottom: 0.1em;
+  margin-bottom: -0.1em;
+}
+
+.hint-icon {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex: none;
+  animation: hint-icon-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+}
+
+.hint.is-leaving .hint-icon {
+  animation: hint-icon-out 0.25s ease-in both;
+}
+
+@keyframes hint-clear-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+@keyframes hint-clear-out {
+  to {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+@keyframes hint-icon-in {
+  from {
+    opacity: 0;
+    transform: translateY(110%);
+  }
+}
+
+@keyframes hint-icon-out {
+  to {
+    opacity: 0;
+    transform: translateY(-110%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hint-icon,
+  .hint.is-leaving .hint-icon,
+  .hint--hero .hint-inner::before,
+  .hint--hero.is-leaving .hint-inner::before {
+    animation-name: hint-fade;
+    animation-duration: 0.25s;
+  }
+
+  .hint.is-leaving .hint-icon,
+  .hint--hero.is-leaving .hint-inner::before {
+    animation-direction: reverse;
+  }
+
+  @keyframes hint-fade {
+    from {
+      opacity: 0;
+    }
+  }
+}

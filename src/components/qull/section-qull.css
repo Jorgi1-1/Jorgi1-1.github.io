@@ -1,0 +1,52 @@
+/* Placed (left/top) on its screen's spot, above the section content but
+   never in the way of it: clicks reach Qull through a window listener.
+   Absolute inside the content, so it fades out with it and scrolls with it:
+   the browser moves it with what it stands on, frame for frame. */
+.section-qull {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  width: clamp(79px, 8.8vw, 123px);
+  aspect-ratio: 1;
+  color: var(--qull-neon);
+  pointer-events: none;
+}
+
+/* The same glow as the section's neon title (stroke-ascii-title.css). */
+.section-qull-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, currentColor 60%, transparent));
+}
+
+/* --qull-draw (0 → 1, written per frame) runs the "draw" entrance and
+   rests at 1: the body's outline traces on, its fill comes in, then the
+   limbs trace on (their inner ends already hidden behind the filled body),
+   then the face and spark. Strokes scale with the figure, as dashes need
+   its own units. */
+.section-qull-shell {
+  fill: var(--qull-ground);
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 1 1;
+}
+
+.section-qull-body {
+  stroke-dashoffset: calc(1 - clamp(0, var(--qull-draw, 1) * 2, 1));
+  fill-opacity: clamp(0, calc((var(--qull-draw, 1) - 0.45) * 10), 1);
+}
+
+.section-qull-limbs {
+  stroke-dashoffset: calc(1 - clamp(0, calc((var(--qull-draw, 1) - 0.55) / 0.3), 1));
+  fill-opacity: clamp(0, calc((var(--qull-draw, 1) - 0.8) * 10), 1);
+}
+
+.section-qull-ink {
+  fill: currentColor;
+  opacity: clamp(0, calc((var(--qull-draw, 1) - 0.85) * 7), 1);
+}

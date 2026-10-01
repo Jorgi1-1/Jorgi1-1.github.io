@@ -3,15 +3,25 @@
 .hero-marquee {
   --home-bg: #f4efe2;
   --home-accent: #16130f;
+  /* The shaded letters' outline. Soot ink faded to 42% read as a warm gray,
+     the same family as three of the four totem colors, so the wave's color
+     change got lost. Coral is a hue no section uses, so every stripe still
+     reads as a change. */
+  --home-outline: #ff7857;
+  --outline-recede: 0.6;
 
   position: relative;
   isolation: isolate;
-  min-height: 100vh;
-  min-height: 100dvh;
+  /* Exactly one screen. The rows are sized to overshoot it as texture; with
+     only a min-height they stretched the page into a long scroll of the same
+     rows. `safe` keeps the name at the top when they overflow, so only
+     texture is ever cut. */
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: safe center;
   gap: clamp(0.1rem, 0.6vw, 0.35rem);
   background: var(--home-bg);
   /* --totem-hover-accent is set on the root on stripe hover (totem-hover.ts). */
@@ -19,9 +29,19 @@
   transition: color 0.5s ease, background-color 0.3s ease;
 }
 
+/* On phones the name's first line runs edge to edge, so it starts below
+   the fixed theme toggle instead of under it. */
+@media (max-width: 40rem) {
+  .hero-marquee {
+    padding-block-start: max(4.5rem, calc(env(safe-area-inset-top) + 3.75rem));
+  }
+}
+
 .dark .hero-marquee {
   --home-bg: #222022;
   --home-accent: #c3d809;
+  --home-outline: #c3d809;
+  --outline-recede: 0.42;
 }
 
 .hero-marquee-row {
@@ -40,18 +60,78 @@
   transition: color 0.5s ease, stroke 0.5s ease, opacity 0.5s ease;
 }
 
-/* The real headline (row 0): heavier weight. The mask pass reuses it. */
+/* The real headline (row 0): heavier weight. The clip pass reuses it. */
 .hero-marquee-row--primary {
   font-weight: 900;
 }
 
-/* Decorative rows recede. Not applied to the SVG mask, whose alpha sets
-   how strongly the shader shows through. */
+/* Decorative rows recede. Not applied to the SVG clip, which is the full
+   glyph either way. */
 .hero-marquee-row--recede {
   opacity: 0.42;
 }
 
-/* Once the shader is running, the ink fill turns transparent: the masked
+/* The outline pass recedes per theme (see --outline-recede). */
+.hero-knockout .hero-marquee-row--recede {
+  opacity: var(--outline-recede);
+}
+
+/* The name row spans the same measure as the justified role rows: JORGE
+   flush left, TOVAR flush right, Qull (the mascot) centered in the space between. */
+.hero-marquee-name {
+  display: flex;
+  flex-direction: column;
+  gap: var(--name-line-gap, 0);
+  width: calc(var(--hero-measure, 100%) + 2 * clamp(1rem, 4vw, 3rem));
+  max-width: 100%;
+}
+
+/* One line: JORGE, Qull, TOVAR. Staggered on narrow screens: JORGE and
+   Qull, then TOVAR flush right. */
+.hero-name-line {
+  display: flex;
+  align-items: flex-start;
+}
+
+.hero-name-line--end {
+  justify-content: flex-end;
+}
+
+/* The negative space: it takes whatever the measure leaves, and Qull
+   sits in its middle, centered on the capitals. */
+.hero-name-space {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.hero-name-mark {
+  width: var(--mark-size);
+  height: var(--mark-size);
+  margin-top: calc(var(--mark-center) - var(--mark-size) / 2);
+  fill: currentColor;
+  overflow: visible;
+}
+
+/* Qull's body is an outline around ground, as thick as the shaded pass
+   draws it (0.022em x 0.51, in its 108-unit box of 0.94em). */
+.hero-qull-body {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linejoin: round;
+}
+
+/* Shaded: Qull turns transparent like the glyphs; the SVG clip and
+   outline pass carry it. */
+.hero-marquee--shaded .hero-name-mark,
+.hero-marquee--shaded .hero-qull-body {
+  fill: transparent;
+  stroke: transparent;
+}
+
+/* Once the shader is running, the ink fill turns transparent: the clipped
    shader becomes the fill and an SVG stroke pass draws the outline. */
 .hero-marquee--shaded .hero-marquee-row {
   color: transparent;
@@ -65,7 +145,8 @@
   overflow: hidden;
 }
 
-/* Glyph-shaped windows onto .hero-fill, rendered whenever motion is allowed. */
+/* The glyphs' clip shapes and their outline, over .hero-fill; rendered
+   whenever motion is allowed. */
 .hero-knockout {
   position: absolute;
   inset: 0;
@@ -73,10 +154,6 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
-}
-
-.hero-knockout-ground {
-  fill: var(--home-bg);
 }
 
 /* No-WebGPU stand-in for the shader. Only `transform` animates; oversized
@@ -159,62 +236,209 @@
   animation-play-state: paused;
 }
 
-.hero-marquee-name {
-  position: absolute;
+/* Always-visible identity: who, where (with local time), availability.
+   Fixed, not absolute: the hero overshoots the viewport by design. */
+.hero-identity {
+  position: fixed;
   bottom: clamp(1.25rem, 4vw, 2.5rem);
   left: clamp(1rem, 4vw, 3rem);
-  font-family: var(--font-sans);
-  font-size: clamp(0.8rem, 1.4vw, 1rem);
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  opacity: 0.7;
   z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.5rem;
+  background: var(--home-bg);
+  font-family: var(--font-sans);
+  font-size: clamp(0.75rem, 1.2vw, 0.875rem);
+  line-height: 1.35;
+  letter-spacing: 0.01em;
   transition: color 0.5s ease;
 }
 
+/* No tabular-nums here: in Schibsted Grotesk they also widen the comma and
+   colon ("Puebla ," "13 : 52"). The clock sits at the end of its line and
+   changes once a minute, so proportional figures don't jitter anything. */
+
+.hero-identity-name {
+  font-weight: 700;
+}
+
+/* Availability opens Contact. Reads as the chip's own text with an
+   underline, not as a button dropped into it. */
+.hero-identity-cta {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: start;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  text-decoration-thickness: 1px;
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: text-underline-offset 0.2s ease;
+}
+
+@media (hover: hover) {
+  .hero-identity-cta:hover {
+    text-underline-offset: 0.4em;
+  }
+}
+
+.hero-identity-cta:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* A finger needs more than one line of chip text to aim at; the padding
+   grows the hit area without growing the chip. */
+@media (pointer: coarse) {
+  .hero-identity-cta {
+    padding-block: 0.875rem;
+    margin-block: -0.875rem;
+  }
+}
+
 /* Totem wave: a diagonal band of the section color sweeping across the
-   background, triggered by `data-totem-wave` on the root. Transform and
-   opacity only (paint animations over the shader leave ghosts), driven by
-   transitions so leaving mid-sweep reverses smoothly. */
+   ground, triggered by `data-totem-wave` on the root. Transform and opacity
+   only, so the compositor runs it, driven by transitions so leaving
+   mid-sweep reverses smoothly. The band is drawn at a quarter of its size
+   and scaled up (it's a soft gradient, nothing to lose): on screen it spans
+   twice the hero, and travels 60% of the hero each way. */
 .hero-wave {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  z-index: 1;
+  width: 50%;
+  height: 50%;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom right,
+    transparent 42%,
+    color-mix(in srgb, var(--totem-wave-color, transparent) 88%, transparent) 50%,
+    transparent 58%
+  );
   opacity: 0;
-  transform-box: fill-box;
-  transform: translate(30%, 30%);
+  transform-origin: 0 0;
+  transform: translate(120%, 120%) scale(4);
   transition:
     opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.hero-wave-stop--clear {
-  stop-color: var(--totem-wave-color, transparent);
-  stop-opacity: 0;
-}
-
-.hero-wave-stop--peak {
-  stop-color: var(--totem-wave-color, transparent);
-  stop-opacity: 0.88;
-}
-
 :root[data-totem-wave] .hero-wave {
   opacity: 0.75;
-  transform: translate(-30%, -30%);
+  transform: translate(-120%, -120%) scale(4);
 }
 
 /* Momentary reset used by totem-hover.ts to replay the sweep between stripes. */
 :root[data-totem-wave][data-totem-wave-restart] .hero-wave {
   transition: none;
   opacity: 0;
-  transform: translate(30%, 30%);
+  transform: translate(120%, 120%) scale(4);
 }
 
-/* Covered by an open section: stop compositing the SVG layer. The WebGPU
-   canvas stays mounted because hiding it doesn't reliably resume. */
-:root[data-hero-covered] .hero-knockout {
+/* Covered by an open section: stop painting the outline. Only the outline:
+   the clip shapes live in the same <svg> and the fill still references
+   them. */
+:root[data-hero-covered] .hero-outline {
   display: none;
+}
+
+/* The WebGPU canvas stays mounted while covered, because hiding it doesn't
+   reliably resume; it's parked off screen instead. The shader library slows
+   to a frame a second when its canvas leaves the viewport, and left in
+   place, WebKit held each frame of the hidden canvas for about 80ms, which
+   took every open section down to some 12fps. */
+:root[data-hero-covered] .hero-fill {
+  transform: translateY(-300vh);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .hero-wave {
     display: none;
   }
+}
+
+/* First-visit entry wipe, server-rendered (home-page.tsx). The totem is a
+   client-only chunk that can take seconds on a phone, so the bars can't wait
+   for it: they hold on black and sweep in with CSS from the first paint,
+   timed and eased like the totem's GSAP intro (0.4s hold, 0.45s per bar,
+   0.05s stagger, power3.inOut). When the totem mounts it seeks its own
+   timeline to the same moment, covers these bars with identical ones and
+   sets data-home-intro-handoff, and these step aside. It lives here because
+   this stylesheet ships with the SSR'd hero. */
+.home-intro {
+  display: none;
+}
+
+:root[data-home-intro]:not([data-home-intro-handoff]) .home-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 29;
+  display: flex;
+  background-color: #0a0a0a;
+}
+
+.home-intro-stripe {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--intro-light);
+  color: var(--intro-light-ink);
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: home-intro-sweep 0.45s cubic-bezier(0.76, 0, 0.24, 1) forwards;
+  animation-delay: calc(0.4s + var(--i) * 0.05s);
+}
+
+.dark .home-intro-stripe {
+  background-color: var(--intro-dark);
+  color: var(--intro-dark-ink);
+}
+
+/* Matches .totem-stripe-label, including its touch variant. */
+.home-intro-label {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+@media (hover: none) {
+  .home-intro-stripe {
+    padding-inline: 0.25rem;
+  }
+
+  .home-intro-label {
+    white-space: normal;
+    text-align: center;
+    line-height: 1.1;
+    font-size: 0.625rem;
+    letter-spacing: 0.01em;
+  }
+}
+
+@keyframes home-intro-sweep {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* The intro owns the screen; the theme toggle arrives with the hero. */
+.home-theme-toggle {
+  transition: opacity 0.4s ease;
+}
+
+:root[data-home-intro] .home-theme-toggle {
+  opacity: 0;
+  pointer-events: none;
 }

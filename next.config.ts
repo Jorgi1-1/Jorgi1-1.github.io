@@ -6,6 +6,9 @@ const basePath = process.env.PAGES_BASE_PATH ?? "";
 
 const nextConfig: NextConfig = {
   output: "export",
+  // A build can run next to `next dev` (which owns .next) by pointing this
+  // elsewhere, e.g. NEXT_DIST_DIR=.next-build.
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   // Pin the workspace root; a stray lockfile higher up would otherwise win.
   outputFileTracingRoot: process.cwd(),
   basePath,

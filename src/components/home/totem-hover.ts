@@ -7,15 +7,19 @@
 
 /**
  * Headline text/outline color (--totem-hover-accent). CSS transitions
- * animate it back to rest when cleared.
+ * animate it back to rest when cleared. The section it belongs to goes to
+ * `data-totem-hover`, which Qull reads to pick a mood.
  */
-export function setTotemAccentColor(color: string | null) {
+export function setTotemAccentColor(color: string | null, section?: string) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   if (color) {
     root.style.setProperty("--totem-hover-accent", color);
+    if (section) root.setAttribute("data-totem-hover", section);
+    else root.removeAttribute("data-totem-hover");
   } else {
     root.style.removeProperty("--totem-hover-accent");
+    root.removeAttribute("data-totem-hover");
   }
 }
 
@@ -76,4 +80,26 @@ export function onTotemChromaWave(handler: (color: string | null) => void): () =
   const listener = (event: Event) => handler((event as CustomEvent<string | null>).detail);
   window.addEventListener(CHROMA_WAVE_EVENT, listener);
   return () => window.removeEventListener(CHROMA_WAVE_EVENT, listener);
+}
+
+const OPEN_SECTION_EVENT = "totem-open-section";
+
+/**
+ * Opens a section from outside the totem (the hero's identity chip). The
+ * totem is a client-only chunk, so the request goes out as a DOM event.
+ */
+export function requestOpenSection(id: string, trigger?: HTMLElement) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(OPEN_SECTION_EVENT, { detail: { id, trigger } }));
+}
+
+/** Subscribe to requestOpenSection. Returns an unsubscribe function. */
+export function onOpenSectionRequest(handler: (id: string, trigger?: HTMLElement) => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const listener = (event: Event) => {
+    const { id, trigger } = (event as CustomEvent<{ id: string; trigger?: HTMLElement }>).detail;
+    handler(id, trigger);
+  };
+  window.addEventListener(OPEN_SECTION_EVENT, listener);
+  return () => window.removeEventListener(OPEN_SECTION_EVENT, listener);
 }

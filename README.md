@@ -1,60 +1,72 @@
-# Jorge Tovar — Portfolio
+# Jorge Tovar · Portfolio
 
-Portafolio personal de Jorge Luis Tovar Arriaga, desarrollador fullstack con pasión por el diseño UX/UI.
+The personal site of Jorge Luis Tovar Arriaga, a fullstack developer and UX/UI designer based in Puebla, Mexico.
 
-**Sitio:** [jorgi1-1.github.io](https://jorgi1-1.github.io)
+**Live:** [jorgi1-1.github.io](https://jorgi1-1.github.io)
 
-## Contenido
+## What it is
 
-- **Inicio** — hero tipográfico con un shader WebGPU enmascarado en las letras y un tótem de colores como navegación principal. Cada franja abre su sección en el mismo lugar.
-- **Interfaces** (`/interfaces`) — recreaciones pixel a pixel de interfaces reales: Aura, Axion, Codenest, Cropwise, Payius, Tiny Trails, Vanguard y Velaro.
-- **Galería** (`/galeria`) — componentes sueltos: cards, navegación, tooltips, efectos de parallax.
+One page, built around type.
+
+- **Hero.** The name and the two roles fill the screen as a justified block. Once the WebGPU shader is running, the letters become windows onto it; without WebGPU, a CSS stand-in takes its place.
+- **Totem.** A bar of four colors is the navigation. Each stripe opens its section in place: Work, About, Stack and Contact. A keyboard-operable nav sits behind it.
+- **Qull.** A small ink-drop character that lives in the hero and in every section. It follows the pointer, reacts to what's on screen, and in Stack it plays with the pills, which are a small physics simulation.
+- **Footer.** The hero doesn't scroll, so scrolling there drops the totem's colors onto a card with the ways to get in touch.
+
+Both themes are designed, not derived, and every animation has a reduced-motion path.
 
 ## Stack
 
-Next.js 16 (App Router, export estático) · React 19 · TypeScript · Tailwind CSS v4 · GSAP · Motion · Lenis · shadcn/ui · WebGL/WebGPU
+Next.js 16 (App Router, static export) · React 19 · TypeScript · Tailwind CSS v4 · GSAP · matter-js · [shaders](https://shaders.com) (WebGPU) · WebGL
 
-## Desarrollo
+## Development
 
-Requiere Node.js 24 (ver `.nvmrc`).
+Requires Node.js 24 (see `.nvmrc`).
 
 ```bash
 npm install
 npm run dev
 ```
 
-| Script | Descripción |
+| Script | What it does |
 | --- | --- |
-| `npm run dev` | Servidor de desarrollo en `http://localhost:3000` |
-| `npm run build` | Export estático en `out/` |
+| `npm run dev` | Dev server at `http://localhost:3000` |
+| `npm run build` | Static export to `out/` |
 | `npm run lint` | ESLint |
-| `npm run typecheck` | Verificación de tipos con TypeScript |
+| `npm run typecheck` | TypeScript, no emit |
 
-Para probar desde otro dispositivo de la red local, agrega su IP en `.env.local`:
+To open the dev server from another device on the network, list its address in `.env.local`:
 
 ```bash
 ALLOWED_DEV_ORIGINS=192.168.1.20
 ```
 
-> **Webpack, no Turbopack.** `dev` y `build` usan `--webpack` a propósito. Turbopack falla cuando la ruta absoluta del proyecto contiene caracteres no ASCII (por ejemplo `Programación`), porque corta los nombres de chunk a mitad de un carácter UTF-8.
+`dev` and `build` pass `--webpack` on purpose. Turbopack cuts chunk names at a fixed byte offset, and when the project's absolute path contains a non-ASCII character (mine does) that offset can land in the middle of it and crash the build.
 
-## Estructura
+## Structure
 
 ```
 src/
-├── app/                 Rutas (inicio, /interfaces/*, /galeria)
+├── app/                 Layout, metadata, the home page, 404 and error pages
 ├── components/
-│   ├── home/            Hero, tótem de navegación y secciones del inicio
-│   ├── interfaces/      Una carpeta por interfaz recreada
-│   ├── gallery/         Registro y demos de la galería
-│   └── ui/              Componentes compartidos
-└── lib/                 Utilidades
+│   ├── home/            Hero, totem, footer, hints and the four sections
+│   ├── qull/            The character: its motion, and how it behaves on each screen
+│   └── ui/              Standalone effects (fluid cursor, click sparks, ASCII title, text animations)
+└── lib/                 Fonts, site constants, browser checks
 ```
 
-## Despliegue
+## Deployment
 
-Cada push a `main` ejecuta lint, verificación de tipos y el build, y publica `out/` en GitHub Pages ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)). El `basePath` se toma de la configuración de Pages, así que el sitio funciona tanto en un dominio de usuario como en uno de proyecto.
+Every push to `main` runs lint, the type check and the build, then publishes `out/` to GitHub Pages ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)).
 
-## Contacto
+## Credits
 
-[LinkedIn](https://www.linkedin.com/in/jorge-luis-tovar-arriaga-a20489293) · [Kanso Studio](https://www.kansostudio.com.mx)
+Some effects started from open-source components and were adapted to this site:
+
+- [React Bits](https://reactbits.dev): the fluid cursor, click sparks, split-text and typing effects, and the pieces behind the ASCII title.
+- [Fancy Components](https://www.fancycomponents.dev): the feel of the pills' gravity.
+- [shaders](https://shaders.com): the shader layers behind the headline.
+
+## Contact
+
+[LinkedIn](https://www.linkedin.com/in/jorge-luis-tovar-arriaga-a20489293) · [jorgi1tovar@gmail.com](mailto:jorgi1tovar@gmail.com) · [Kanso Studio](https://www.kansostudio.com.mx)

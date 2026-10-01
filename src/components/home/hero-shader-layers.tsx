@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ChromaFlow, CursorRipples, FilmGrain, FlutedGlass, Shader, Swirl } from "shaders/react";
 
+import { isWebKit } from "@/lib/engine";
 import { onTotemChromaWave } from "./totem-hover";
 
 type HeroShaderLayersProps = {
@@ -11,9 +12,24 @@ type HeroShaderLayersProps = {
   onUnavailable: () => void;
 };
 
-// ChromaFlow's own resting tone (see the <ChromaFlow> below) — the value
+// ChromaFlow's own resting tone (see the <ChromaFlow> below): the value
 // the totem-hover wave animates away from and back to.
 const CHROMA_REST_COLOR = "#16130f";
+
+// The library renders at the display's pixel ratio, capped at 2 (1.5 on
+// phones). WebKit composites this canvas through the glyph clip, and at a
+// Retina buffer that is the first thing to fall to 30fps when the GPU is
+// busy; a liquid behind fluted glass loses nothing visible at this ratio.
+const WEBKIT_PIXEL_RATIO = 1.25;
+
+// How much of its box the shader is laid out at. The library sizes its
+// buffer from the element, so a smaller box scaled back up is the only
+// handle on its resolution.
+function renderScale() {
+  if (!isWebKit()) return 1;
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  return Math.min(1, WEBKIT_PIXEL_RATIO / ratio);
+}
 
 function hexToRgb(hex: string) {
   const clean = hex.replace("#", "");
@@ -31,12 +47,14 @@ function mixHex(from: string, to: string, t: number) {
 }
 
 /**
- * Liquid-glass shader from the Axion recreation (Swirl, ChromaFlow,
- * FlutedGlass, FilmGrain) plus CursorRipples. Rendered full-hero and masked
- * to the headline glyphs (see hero-marquee.tsx).
+ * The liquid-glass shader behind the headline: Swirl, ChromaFlow, FlutedGlass,
+ * CursorRipples and FilmGrain, rendered full-hero and clipped to the glyphs
+ * by hero-marquee.tsx, which also swaps in a CSS stand-in when the browser
+ * can't run it.
  */
 export function HeroShaderLayers({ onReady, onUnavailable }: HeroShaderLayersProps) {
-  const [unavailable, setUnavailable] = useState(false);
+  // Client-only (hero-shader-effect.tsx), so the window is there to read.
+  const [scale] = useState(renderScale);
 
   // The totem-hover wave rides ChromaFlow's own liquid by tweening its
   // baseColor prop (see onTotemChromaWave in totem-hover.ts).
@@ -67,31 +85,26 @@ export function HeroShaderLayers({ onReady, onUnavailable }: HeroShaderLayersPro
     });
   }, []);
 
-  if (unavailable) {
-    // Static stand-in when WebGPU is unavailable.
-    return (
-      <div
-        aria-hidden
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(120% 90% at 15% 100%, rgba(195,216,9,0.3) 0%, transparent 55%), #222022",
-        }}
-      />
-    );
-  }
-
   return (
     <Shader
       className="absolute inset-0"
+      style={
+        scale < 1
+          ? {
+              right: "auto",
+              bottom: "auto",
+              width: `${scale * 100}%`,
+              height: `${scale * 100}%`,
+              transform: `scale(${1 / scale})`,
+              transformOrigin: "0 0",
+            }
+          : undefined
+      }
       // The library otherwise samples 5% of sessions and beacons frame stats
-      // to shaders.com — a third-party request this portfolio has no use for.
+      // to shaders.com, a third-party request this site has no use for.
       disableTelemetry
       onReady={onReady}
-      onUnavailable={() => {
-        setUnavailable(true);
-        onUnavailable();
-      }}
+      onUnavailable={onUnavailable}
     >
       <Swirl colorA="#f4efe2" colorB="#16130f" detail={1.1} speed={0.35} />
       <ChromaFlow

@@ -1,0 +1,50 @@
+/* Grounded like the identity chip, so it reads as a cut-out over the
+   marquee rather than a white box on cream. A full pill, like every other
+   control on the site. */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid rgb(22 19 15 / 0.15);
+  border-radius: 9999px;
+  background: #f4efe2;
+  color: #16130f;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.dark .theme-toggle {
+  border-color: rgb(195 216 9 / 0.25);
+  background: #222022;
+  color: #c3d809;
+}
+
+@media (hover: hover) {
+  .theme-toggle:hover {
+    background: #e9e2d0;
+  }
+
+  .dark .theme-toggle:hover {
+    background: #2e2b2e;
+  }
+}
+
+.theme-toggle:active {
+  transform: translateY(1px);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* 32px is fine under a mouse; a finger needs the full 44px target. */
+@media (pointer: coarse) {
+  .theme-toggle {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}

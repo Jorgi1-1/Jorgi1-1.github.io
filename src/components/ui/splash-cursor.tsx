@@ -580,9 +580,20 @@ export function SplashCursor({
       else
         velocity = resizeDoubleFBO(velocity, simRes.width, simRes.height, rg.internalFormat, rg.format, texType, filtering);
 
+      // A resize rebuilds these; the ones they replace go back to the GPU.
+      disposeFBO(divergence);
+      disposeFBO(curl);
+      disposeFBO(pressure?.read);
+      disposeFBO(pressure?.write);
       divergence = createFBO(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
       curl = createFBO(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
       pressure = createDoubleFBO(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
+    }
+
+    function disposeFBO(target: any) {
+      if (!target) return;
+      gl.deleteTexture(target.texture);
+      gl.deleteFramebuffer(target.fbo);
     }
 
     function createFBO(w: number, h: number, internalFormat: number, format: number, type: any, param: number) {
@@ -656,8 +667,11 @@ export function SplashCursor({
 
     function resizeDoubleFBO(target: any, w: number, h: number, internalFormat: number, format: number, type: any, param: number) {
       if (target.width === w && target.height === h) return target;
-      target.read = resizeFBO(target.read, w, h, internalFormat, format, type, param);
+      const { read, write } = target;
+      target.read = resizeFBO(read, w, h, internalFormat, format, type, param);
       target.write = createFBO(w, h, internalFormat, format, type, param);
+      disposeFBO(read);
+      disposeFBO(write);
       target.width = w;
       target.height = h;
       target.texelSizeX = 1.0 / w;
@@ -948,6 +962,14 @@ export function SplashCursor({
       window.removeEventListener("touchstart", handleTouchStart);
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleTouchEnd);
+      // Every opened section mounts a new simulation. Left to the garbage
+      // collector, each one's float buffers linger on the GPU alongside the
+      // hero's shader; deleted here, they go at once. Deleted rather than
+      // the whole context dropped: the canvas outlives this effect when
+      // React re-runs it, and a lost context can't be asked for again.
+      for (const target of [dye?.read, dye?.write, velocity?.read, velocity?.write, divergence, curl, pressure?.read, pressure?.write]) {
+        disposeFBO(target);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

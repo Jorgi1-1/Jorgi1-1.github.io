@@ -1,0 +1,453 @@
+/* The floating footer (hero-footer.tsx). A sign board: soot ground in both
+   themes, lit in the site's accent, with the totem's colors on its top edge.
+   It floats where the totem did (z 30) and under the section overlay (44+),
+   so a section can still open from it. */
+
+.hero-footer-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 33;
+  width: 100vw;
+  height: 100vh;
+  overflow: visible;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+}
+
+/* Night: a soot sign board lit in Sodium Lime. Day: the print shop's paper,
+   a shade lighter than the page, in soot ink, lit by Contact's magenta (the
+   one sign already switched on, the same value in both themes). The splash
+   pool shares the card's ground so the liquid is the card. */
+.hero-footer,
+.hero-footer-splash,
+.hero-footer-veil {
+  --footer-bg: #fbf8f1;
+  --footer-ink: #16130f;
+  --footer-accent: #b7245c;
+  --footer-accent-ink: #f4efe2;
+  --footer-veil: rgb(244 239 226 / 0.18);
+}
+
+.dark .hero-footer,
+.dark .hero-footer-splash,
+.dark .hero-footer-veil {
+  --footer-bg: #16130f;
+  --footer-ink: #f4efe2;
+  --footer-accent: #c3d809;
+  --footer-accent-ink: #16130f;
+  --footer-veil: rgb(22 19 15 / 0.12);
+}
+
+/* Behind the card: the hero, softly out of focus. A fixed blur faded in
+   with opacity, not an animated radius, which would repaint every frame. */
+.hero-footer-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 32;
+  background: var(--footer-veil);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  visibility: hidden;
+  opacity: 0;
+}
+
+.hero-footer-pool {
+  fill: var(--footer-bg);
+}
+
+.hero-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 34;
+  width: min(100% - 2rem, 62rem);
+  max-height: calc(100dvh - 2rem);
+  margin-inline: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 1rem;
+  background: var(--footer-bg);
+  color: var(--footer-ink);
+  /* The totem's own shadow: it floats in the totem's place. */
+  box-shadow:
+    0 10px 34px -12px rgb(0 0 0 / 0.4),
+    inset 0 0 0 1px color-mix(in srgb, var(--footer-ink) 10%, transparent);
+  visibility: hidden;
+  opacity: 0;
+}
+
+.hero-footer-bands {
+  display: block;
+  width: 100%;
+  height: 1.9rem;
+  margin-bottom: -0.4rem;
+}
+
+.hero-footer-content {
+  position: relative;
+  display: grid;
+  gap: clamp(1.75rem, 4vh, 2.75rem);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  padding-top: clamp(1rem, 2.5vw, 1.75rem);
+}
+
+.hero-footer-close {
+  position: absolute;
+  top: clamp(0.5rem, 1.5vw, 1rem);
+  right: clamp(0.5rem, 1.5vw, 1rem);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1.5px solid color-mix(in srgb, var(--footer-ink) 22%, transparent);
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--footer-ink);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+@media (hover: hover) {
+  .hero-footer-close:hover {
+    border-color: var(--footer-accent);
+    background: color-mix(in srgb, var(--footer-ink) 6%, transparent);
+  }
+}
+
+.hero-footer-lead {
+  display: grid;
+  gap: 1.25rem;
+  padding-right: 3rem;
+}
+
+@media (min-width: 56rem) {
+  .hero-footer-lead {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    align-items: end;
+    gap: 2.5rem;
+  }
+}
+
+.hero-footer-heading {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4.6vw, 3.6rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  outline: none;
+}
+
+/* Focused only so keyboard users land in the card; nothing to press. */
+.hero-footer .hero-footer-heading:focus-visible {
+  outline: none;
+}
+
+.hero-footer .hero-footer-accent {
+  display: block;
+  /* Holds its line while the words type and delete, so the card never
+     changes height under the cursor. */
+  min-height: 1em;
+  white-space: nowrap;
+  color: var(--footer-accent);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--footer-accent) 45%, transparent);
+}
+
+.hero-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+}
+
+@media (min-width: 56rem) {
+  .hero-footer-actions {
+    justify-content: flex-end;
+  }
+}
+
+.hero-footer-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  background: var(--footer-accent);
+  color: var(--footer-accent-ink);
+  font-weight: 600;
+  font-size: 1rem;
+  box-shadow:
+    0 0 16px color-mix(in srgb, var(--footer-accent) 55%, transparent),
+    0 0 3px color-mix(in srgb, var(--footer-accent) 90%, transparent);
+  transition: opacity 0.2s ease;
+}
+
+@media (hover: hover) {
+  .hero-footer-cta:hover {
+    opacity: 0.85;
+  }
+}
+
+.hero-footer-cta:active {
+  opacity: 0.8;
+}
+
+.hero-footer-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.hero-footer-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--footer-ink);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+@media (hover: hover) {
+  .hero-footer-copy:hover {
+    background: color-mix(in srgb, var(--footer-ink) 8%, transparent);
+  }
+}
+
+.hero-footer-columns {
+  display: grid;
+  gap: 1.5rem 2rem;
+  padding-top: clamp(1.25rem, 3vh, 2rem);
+  border-top: 1px solid color-mix(in srgb, var(--footer-ink) 12%, transparent);
+}
+
+@media (min-width: 40rem) {
+  .hero-footer-columns {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.hero-footer-column ul {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.hero-footer-label {
+  margin-bottom: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--footer-ink) 62%, transparent);
+}
+
+.hero-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  background: none;
+  color: var(--footer-ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.3em;
+  text-decoration-thickness: 1px;
+  cursor: pointer;
+  transition:
+    text-decoration-color 0.2s ease,
+    text-underline-offset 0.2s ease,
+    color 0.2s ease;
+}
+
+.hero-footer-link svg {
+  opacity: 0.6;
+  transition:
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease;
+}
+
+@media (hover: hover) {
+  .hero-footer-link:hover {
+    color: var(--footer-accent);
+    text-decoration-color: currentColor;
+    text-underline-offset: 0.4em;
+  }
+
+  .hero-footer-link:hover svg {
+    opacity: 1;
+    transform: translate(2px, -2px);
+  }
+
+  .hero-footer-section:hover svg {
+    transform: translateX(3px);
+  }
+}
+
+/* Under a finger every link gets the full 44px, and the lists drop their
+   gap so the rows keep close to the same pitch. */
+@media (pointer: coarse) {
+  .hero-footer-link {
+    min-height: 2.75rem;
+  }
+
+  .hero-footer-column ul {
+    gap: 0;
+  }
+}
+
+/* Each section wears its own color, as on the totem. */
+.hero-footer-section::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 9999px;
+  background: var(--dot);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--footer-ink) 18%, transparent);
+}
+
+.hero-footer-note {
+  display: block;
+  margin-top: -0.35rem;
+  margin-bottom: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: color-mix(in srgb, var(--footer-ink) 60%, transparent);
+}
+
+.hero-footer-facts {
+  gap: 0.45rem !important;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.hero-footer-available {
+  color: var(--footer-accent);
+}
+
+.hero-footer-base {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--footer-ink) 12%, transparent);
+  font-size: 0.875rem;
+  color: color-mix(in srgb, var(--footer-ink) 70%, transparent);
+}
+
+.hero-footer-name {
+  font-weight: 700;
+  color: var(--footer-ink);
+}
+
+.hero-footer-back {
+  font-size: 0.875rem;
+}
+
+.hero-footer :focus-visible {
+  outline: 2px solid var(--footer-accent);
+  outline-offset: 3px;
+}
+
+/* Short, wide screens: the lead and the columns side by side would crowd,
+   so the columns lose their notes before the card has to scroll. */
+@media (max-height: 40rem) {
+  .hero-footer-note {
+    display: none;
+  }
+}
+
+/* Phones: still a card floating over the hero, not a page. The two link
+   columns share a row, the notes go, and the steps tighten. */
+@media (max-width: 39.99rem) {
+  .hero-footer-content {
+    gap: 1.25rem;
+    padding: 1.1rem 1.1rem 1rem;
+  }
+
+  /* Only the heading has to clear the close button; the actions below it
+     take the card's full width, so the CTA's label stays on one line. */
+  .hero-footer-lead {
+    padding-right: 0;
+  }
+
+  .hero-footer-heading {
+    padding-right: 3rem;
+  }
+
+  .hero-footer-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 1.25rem;
+    padding-top: 1rem;
+  }
+
+  .hero-footer-columns > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  .hero-footer-note {
+    display: none;
+  }
+
+  .hero-footer-label {
+    margin-bottom: 0.25rem;
+  }
+
+  .hero-footer-facts {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.9rem !important;
+    font-size: 0.9rem;
+  }
+
+  .hero-footer-available {
+    flex-basis: 100%;
+  }
+
+  .hero-footer-cta {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .hero-footer-base {
+    padding-top: 0.75rem;
+  }
+}
+
+/* The card owns the screen's corners while it's up; the theme toggle would
+   sit on its close button. */
+:root[data-footer-open] .home-theme-toggle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hero-footer-cursor {
+  margin-left: 0.05em;
+  font-weight: 400;
+  color: var(--footer-accent);
+}
+
+/* By day the magenta is ink, not neon: no halo on paper. */
+:root:not(.dark) .hero-footer .hero-footer-accent {
+  text-shadow: none;
+}
+
+:root:not(.dark) .hero-footer-cta {
+  box-shadow: none;
+}

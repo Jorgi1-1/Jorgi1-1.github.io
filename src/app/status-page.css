@@ -1,0 +1,98 @@
+/* The two pages with nothing to show: not found, and the error boundary.
+   Same grounds and voices as the hero, with the theme's outline color. */
+.status-page {
+  --status-accent: #ff7857;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1.25rem, 4vh, 2.5rem);
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 2rem max(1.5rem, env(safe-area-inset-left)) 2rem max(1.5rem, env(safe-area-inset-right));
+  background: var(--background);
+  color: var(--foreground);
+  text-align: center;
+}
+
+.dark .status-page {
+  --status-accent: #c3d809;
+}
+
+/* 4, Qull, 4: the ink drop stands in for the zero. */
+.status-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: clamp(7rem, 36vw, 20rem);
+  font-weight: 900;
+  line-height: 0.86;
+  letter-spacing: -0.01em;
+}
+
+.status-qull {
+  flex: none;
+  width: 0.86em;
+  height: 0.86em;
+  margin-top: -0.05em;
+  overflow: visible;
+  color: var(--status-accent);
+  fill: currentColor;
+}
+
+.status-qull-body {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+}
+
+.status-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 7vw, 4rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.status-line {
+  max-width: 32ch;
+  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+  line-height: 1.5;
+  text-wrap: balance;
+}
+
+.status-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.75rem 1.5rem;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--foreground);
+  color: var(--background);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+@media (hover: hover) {
+  .status-action:hover {
+    opacity: 0.85;
+  }
+}
+
+.status-action:active {
+  opacity: 0.8;
+}
+
+.status-action:focus-visible {
+  outline: 2px solid var(--status-accent);
+  outline-offset: 3px;
+}

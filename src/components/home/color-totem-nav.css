@@ -22,9 +22,9 @@
 
 .totem-stripe {
   position: relative;
-  /* 2× SECTIONS.length: the track holds two identical copies for the
-     seamless marquee loop (5 sections → 10 stripes). */
-  flex: 0 0 calc(100% / 10);
+  /* --totem-stripes is set on the track: two copies of the sections for
+     the seamless marquee loop. */
+  flex: 0 0 calc(100% / var(--totem-stripes));
   min-width: 0;
   height: 100%;
   border: none;
@@ -50,8 +50,10 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
   white-space: nowrap;
-  opacity: 0;
-  transform: translateY(4px) scale(0.92);
+  /* Named at rest so the totem reads as navigation, not decoration. Full
+     opacity: at 0.72rem, any fade drops the ink below 4.5:1 on these
+     grounds. Hover and focus answer with scale and the stripe's brightness. */
+  opacity: 1;
   transition:
     opacity 0.18s ease,
     transform 0.18s ease;
@@ -60,7 +62,7 @@
 
 .totem-stripe:focus-visible .totem-stripe-label {
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: scale(1.08);
 }
 
 /* Hover reveals only exist where hover does: on touch a tapped :hover
@@ -72,7 +74,7 @@
 
   .totem-stripe:hover .totem-stripe-label {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: scale(1.08);
   }
 }
 
@@ -106,6 +108,9 @@
   width: 100vw;
   height: 100vh;
   background-color: #0a0a0a;
+  /* The server-rendered bars keep the screen until the intro effect has
+     synced this frame to them and made it visible. */
+  visibility: hidden;
 }
 
 :root[data-home-intro] .totem-stripe {
@@ -156,15 +161,6 @@
   pointer-events: none;
 }
 
-/* Full-screen so the title's particles can scatter across the viewport
-   before converging on .section-overlay-title-particle. */
-.section-overlay-title-canvas {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-}
-
 .section-overlay-content {
   /* Sized to the viewport from the first frame so the copy is already laid
      out at its final position and never reflows as the color grows. */
@@ -179,10 +175,13 @@
   align-items: flex-start;
   /* "safe" keeps the top reachable when content overflows (landscape phones). */
   justify-content: safe center;
-  gap: 1.25rem;
+  /* The one generous interval: title above, content below. Everything
+     inside the body runs on tighter steps. */
+  gap: clamp(1.5rem, 4.5vh, 3rem);
   padding: clamp(2rem, 8vw, 6rem);
   /* Room for the close button above the content, and for notches. */
   padding-block-start: max(clamp(4.5rem, 10vw, 6rem), env(safe-area-inset-top));
+  padding-block-end: max(clamp(2rem, 7vh, 4.5rem), env(safe-area-inset-bottom));
   padding-inline: max(clamp(1.5rem, 8vw, 6rem), env(safe-area-inset-left)) max(clamp(1.5rem, 8vw, 6rem), env(safe-area-inset-right));
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -190,8 +189,7 @@
 
 /* Neon on its own base color has low contrast; a tight dark contour
    carries legibility, like the dark outline on real neon signage. */
-.section-overlay-body,
-.section-overlay-tag {
+.section-overlay-body {
   text-shadow:
     0 0 2px rgb(0 0 0 / 0.7),
     0 0 6px rgb(0 0 0 / 0.45);
@@ -239,16 +237,24 @@
   filter: drop-shadow(0 0 1.5px rgb(0 0 0 / 0.75));
 }
 
-/* Reserves one line of the particle title; keep in sync with its fontSize. */
-.section-overlay-title-particle {
+/* The section's name is the panel's headline and the stage for the ASCII
+   lens, so it's the largest thing on screen: sized by width on phones and by
+   height on short desktops, so the body always fits below it.
+   StrokeAsciiTitle fills this height. */
+.section-overlay-title {
+  --title-h: clamp(5.5rem, min(34vw, 27vh), 16rem);
   width: 100%;
-  height: clamp(4rem, 14vw, 5.5rem);
-  margin-bottom: -0.25rem;
+  height: var(--title-h);
+  /* The box keeps the face's descender room below the baseline, and none of
+     the names descend; pull the body up to the letters' actual foot.
+     The side bearing is trimmed so the stems align with the body's edge. */
+  margin-block-end: calc(var(--title-h) * -0.16);
+  margin-inline-start: calc(var(--title-h) * -0.035);
 }
 
 /* Hidden until handleTitleSettled adds .neon-flicker-in. */
 .section-overlay-body {
-  max-width: 46rem;
+  width: min(100%, 76rem);
   font-size: clamp(1rem, 1.6vw, 1.15rem);
   line-height: 1.6;
   opacity: 0;
@@ -261,7 +267,7 @@
   padding: 0.75rem 1.5rem;
   border-radius: 9999px;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 1rem;
   background: var(--panel-fg);
   /* Contrast-picked against the neon fill, not the panel background. */
   color: var(--panel-ink);
@@ -294,110 +300,544 @@
   outline-offset: 3px;
 }
 
-.section-overlay-tag {
-  border: 1.5px solid currentColor;
-  border-radius: 9999px;
-  padding: 0.3rem 0.8rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  /* Faint tint for weight; the inset dark ring separates the neon border
-     from a same-hue background. */
-  background: color-mix(in srgb, currentColor 12%, transparent);
-  box-shadow:
-    inset 0 0 0 1px rgb(0 0 0 / 0.35),
-    0 0 10px color-mix(in srgb, currentColor 45%, transparent);
-  transition: transform 0.15s ease;
+/* Color hierarchy: neon is for the title, the CTA, frames, rules and pill
+   edges, which carry the dark rim. Anything that has to be read, second-tier
+   display lines included, uses the contrast-picked panel ink (4.7:1 or better
+   on every section): neon on its own ground measured as low as 2.3:1, which
+   no rim rescues at headline size. */
+.section-copy,
+.section-overlay-meta,
+.section-overlay-statement,
+.section-work-title,
+.section-contact-headline,
+.section-facts dt,
+.section-facts dd,
+.section-work-meta {
+  color: var(--panel-text);
+  text-shadow: none;
 }
 
-/* Per-tag replay of the neon power-on flicker. steps() makes each stage snap. */
-@keyframes tag-flicker {
-  0% {
-    filter: brightness(1);
-  }
-  15% {
-    filter: brightness(2.2);
-  }
-  30% {
-    filter: brightness(0.7);
-  }
-  45% {
-    filter: brightness(2);
-  }
-  100% {
-    filter: brightness(1.6);
-  }
+.section-copy {
+  max-width: 60ch;
 }
 
-@media (hover: hover) {
-  .section-overlay-tag:hover {
-    animation: tag-flicker 0.4s steps(1, end) forwards;
-    transform: translateY(-2px);
-  }
-}
-
-.section-overlay-tag:focus-visible {
-  animation: tag-flicker 0.4s steps(1, end) forwards;
-  outline: 2px solid currentColor;
-  outline-offset: 2px;
-}
-
-/* Oversized, faint section name behind the content, echoing the hero's
-   type-as-texture. Hidden on narrow screens where it would crowd the CTA. */
-.section-overlay-watermark {
-  position: absolute;
-  right: clamp(-1.5rem, 1vw, 1rem);
-  bottom: clamp(-3rem, -1vw, 1.5rem);
-  z-index: 0;
-  max-width: 60vw;
-  font-size: clamp(3.5rem, 11vw, 9rem);
-  font-weight: 900;
-  line-height: 0.86;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  text-align: right;
-  opacity: 0.12;
-  pointer-events: none;
-  user-select: none;
-}
-
-@media (max-width: 640px) {
-  .section-overlay-watermark {
-    display: none;
-  }
-}
-
-/* Single-statement sections (About) set their line at display scale. */
-.section-overlay-statement {
-  font-size: clamp(1.75rem, 4.4vw, 3.25rem);
+/* Display lines share the hero's face so the panels speak its language. */
+.section-overlay-statement,
+.section-work-title,
+.section-contact-headline,
+.section-work-preview-title {
+  font-family: var(--font-display);
   font-weight: 700;
-  line-height: 1.15;
-  max-width: 22ch;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
-/* Lead-in sentence before a tag list, in the body's reading voice. */
-.section-overlay-lead {
-  font-size: clamp(1rem, 1.6vw, 1.15rem);
-  font-weight: 600;
-  opacity: 0.9;
+/* Second tier under the title: a clear step down, never competing. */
+.section-overlay-statement {
+  font-size: clamp(1.75rem, 3.4vw, 3rem);
+  line-height: 1.04;
+  max-width: 16ch;
 }
 
-/* Sub-group name inside a tag list, one step quieter than the lead. */
-.section-overlay-group-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  opacity: 0.75;
-}
-
-/* The destination behind a CTA (domain or path), in mono. */
+/* A destination or location detail, in mono. */
 .section-overlay-meta {
   font-family: var(--font-mono);
   font-size: 0.8rem;
   letter-spacing: 0.02em;
-  opacity: 0.75;
+}
+
+/* Wide panels split into content and a supporting column. */
+@media (min-width: 64rem) {
+  .section-work,
+  .section-about {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+    gap: clamp(2.5rem, 5vw, 5rem);
+    align-items: start;
+  }
+}
+
+/* Work: entries separated by hairlines in the panel's own color. */
+.section-work-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.section-work-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-block: 1.25rem;
+  border-top: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  transition: border-color 0.3s ease;
+}
+
+.section-work-item:last-child {
+  border-bottom: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+}
+
+.section-work-item[data-active] {
+  border-top-color: currentColor;
+}
+
+.section-work-title {
+  font-size: clamp(1.75rem, 2.8vw, 2.5rem);
+  line-height: 1;
+}
+
+.section-work-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+}
+
+/* The project's kind is metadata: the mono label role. */
+.section-work-kind {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+}
+
+/* 44px tall: a real touch target, not just the text. Body face at body
+   size: this is the path to the proof, so it can't be the smallest text on
+   screen. */
+.section-work-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+  text-decoration-thickness: 1px;
+  transition: text-underline-offset 0.2s ease;
+}
+
+/* The whole entry is the hit area. */
+.section-work-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.section-work-link svg {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) {
+  .section-work-item:hover .section-work-link {
+    text-underline-offset: 0.45em;
+  }
+
+  .section-work-item:hover .section-work-link svg {
+    transform: translate(2px, -2px);
+  }
+}
+
+.section-work-link:focus-visible {
+  outline: none;
+}
+
+/* Focus rings the entry the link stands for, not just its label. */
+.section-work-item:has(.section-work-link:focus-visible) {
+  outline: 2px solid currentColor;
+  outline-offset: 0.5rem;
+  border-radius: 0.25rem;
+}
+
+/* Browser-framed preview of the hovered project (desktop only). */
+.section-work-preview {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .section-work-preview {
+    color: inherit;
+    text-decoration: none;
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    aspect-ratio: 4 / 3;
+    border: 1.5px solid currentColor;
+    border-radius: 1rem;
+    overflow: hidden;
+    background: color-mix(in srgb, currentColor 8%, transparent);
+    box-shadow:
+      inset 0 0 0 1px rgb(0 0 0 / 0.3),
+      0 0 24px color-mix(in srgb, currentColor 30%, transparent);
+  }
+}
+
+.section-work-preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+}
+
+.section-work-preview-dots {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+.section-work-preview-dots i {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 9999px;
+  border: 1.5px solid currentColor;
+}
+
+.section-work-preview-url {
+  flex: 1;
+  padding: 0.2rem 0.75rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--panel-text);
+  text-shadow: none;
+}
+
+.section-work-preview-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: clamp(1.25rem, 2.5vw, 2rem);
+  animation: preview-in 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.section-work-preview-kind {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--panel-text);
+  text-shadow: none;
+}
+
+.section-work-preview-title {
+  font-size: clamp(2.5rem, 4.5vw, 4rem);
+  line-height: 0.95;
+}
+
+@keyframes preview-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+
+/* About: statement and story on the left, facts on the right. */
+.section-about {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+@media (min-width: 64rem) {
+  .section-about {
+    display: grid;
+    align-items: start;
+  }
+}
+
+.section-facts {
+  display: grid;
+}
+
+.section-facts-row {
+  display: grid;
+  gap: 0.2rem;
+  padding-block: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--panel-text) 30%, transparent);
+}
+
+.section-facts dt {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+}
+
+.section-facts dd {
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+  font-weight: 500;
+}
+
+/* Stack: one column per kind of technology, each its own physics tray. */
+.section-stack {
+  display: grid;
+  gap: 2rem;
+}
+
+@media (min-width: 48rem) {
+  .section-stack {
+    /* Width follows content (10 / 7 / 9 tools, and infrastructure's names
+       run long), so no tray fills up while another sits half empty. */
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+  }
+}
+
+.stack-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.stack-column-title {
+  padding-bottom: 0.6rem;
+  border-bottom: 1.5px solid color-mix(in srgb, currentColor 55%, transparent);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--panel-text);
+  text-shadow: none;
+}
+
+.stack-tray {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 0.5rem;
+  height: clamp(11rem, 26vh, 14.5rem);
+  border-bottom: 1.5px solid color-mix(in srgb, currentColor 45%, transparent);
+  touch-action: pan-y;
+}
+
+.stack-tray.is-static {
+  height: auto;
+  padding-bottom: 1rem;
+}
+
+.stack-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.05rem;
+  border: 1.5px solid currentColor;
+  border-radius: 9999px;
+  font-size: clamp(0.9rem, 1.2vw, 1.05rem);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  user-select: none;
+  will-change: transform;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .stack-tray:not(.is-static) .stack-pill {
+    cursor: grab;
+  }
+
+  .stack-tray:not(.is-static):active .stack-pill {
+    cursor: grabbing;
+  }
+}
+
+/* Set once a pill settles upside down (stack-section.tsx). */
+.stack-pill-label {
+  transition: rotate 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stack-pill.is-flipped .stack-pill-label {
+  rotate: 180deg;
+}
+
+/* Neon draws the pill's edge and wash; the label is panel ink, since neon
+   white on the gray ground measured 2.96:1 at pill size. Solid pills
+   override this with the ink picked against their neon fill. */
+.stack-pill-label {
+  display: inline-block;
+  color: var(--panel-text);
+  text-shadow: none;
+}
+
+.stack-pill--solid {
+  background: currentColor;
+  box-shadow: 0 0 14px color-mix(in srgb, currentColor 55%, transparent);
+}
+
+.stack-pill--solid .stack-pill-label {
+  color: var(--panel-ink);
+  text-shadow: none;
+}
+
+/* The wash comes from --panel-shade, not the neon: a neon-white wash under
+   cream ink (light Stack) dropped the label to 3.55:1. */
+.stack-pill--tint {
+  background: color-mix(in srgb, var(--panel-shade) 14%, transparent);
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.35),
+    0 0 10px color-mix(in srgb, currentColor 40%, transparent);
+}
+
+.stack-pill--outline {
+  border-style: dashed;
+}
+
+/* Hand-off to the next section, closing the body. Quiet like the Work
+   "Visit" links (panel ink, button role); the section's color arrives on
+   click, so the control itself doesn't need to shout. */
+.section-next {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  margin-block-start: clamp(1.75rem, 5vh, 3rem);
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  background: none;
+  color: var(--panel-text);
+  text-shadow: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.section-next-lead {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.section-next-label {
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+  text-decoration-thickness: 1px;
+  transition: text-underline-offset 0.2s ease;
+}
+
+.section-next svg {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) {
+  .section-next:hover .section-next-label {
+    text-underline-offset: 0.45em;
+  }
+
+  .section-next:hover svg {
+    transform: translateX(3px);
+  }
+}
+
+.section-next:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* Contact: the headline leads the body, one tier under the title. */
+.section-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.section-contact-headline {
+  font-size: clamp(2rem, 4.6vw, 4rem);
+  line-height: 1;
+  max-width: 22ch;
+}
+
+.section-contact-actions {
+  margin-block-start: 0.5rem;
+}
+
+.section-contact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+}
+
+/* Same button role as every CTA; the closing moment gets more room, not a
+   new type size. */
+.section-contact-cta {
+  gap: 0.5rem;
+  padding: 1rem 1.75rem;
+}
+
+/* Second channel: quieter than the CTA, in the contrast-picked panel ink
+   and the button role, like the Work "Visit" links. */
+.section-contact-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--panel-text);
+  text-shadow: none;
+}
+
+.section-contact-email-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+  text-decoration-thickness: 1px;
+  border-radius: 0.25rem;
+  transition: text-underline-offset 0.2s ease;
+}
+
+/* Third channel: the code, as quiet as the email. */
+.section-contact-github {
+  color: var(--panel-text);
+  text-shadow: none;
+}
+
+.section-contact-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+@media (hover: hover) {
+  .section-contact-email-link:hover {
+    text-underline-offset: 0.45em;
+  }
+
+  .section-contact-copy:hover {
+    background: color-mix(in srgb, currentColor 12%, transparent);
+  }
+}
+
+.section-contact-email-link:focus-visible,
+.section-contact-copy:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* Lists rise in one after another once the body powers on. */
+.neon-flicker-in .section-stagger > * {
+  animation: stagger-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(0.15s + var(--i, 0) * 0.09s);
+}
+
+@keyframes stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
 }
 
 /* Neon power-on: a few uneven flashes before holding steady. Triggered
-   once the particle title has formed. */
+   once the title's outline has drawn on. */
 @keyframes neon-flicker-in {
   0% {
     opacity: 0;
@@ -441,13 +881,21 @@
 /* Accessible nav behind the moving totem, which can't be a reliable focus
    target. Visually hidden until focused, like a skip link. */
 .totem-a11y-nav {
+  /* Centered without a transform: a transformed ancestor would become the
+     containing block of the focused entry's position: fixed. */
   position: fixed;
   top: 0.75rem;
-  left: 50%;
-  translate: -50% 0;
+  left: 0;
+  right: 0;
   z-index: 60;
   display: flex;
+  justify-content: center;
   gap: 0.5rem;
+  pointer-events: none;
+}
+
+.totem-a11y-trigger {
+  pointer-events: auto;
 }
 
 .totem-a11y-trigger {
@@ -465,7 +913,12 @@
 }
 
 .totem-a11y-trigger:focus-visible {
-  position: static;
+  /* Anchored under its stripe by previewFromKeyboard; the nav's own spot
+     at the top is only the fallback before that has run. */
+  position: fixed;
+  left: var(--anchor-x, 50%);
+  top: var(--anchor-y, 0.75rem);
+  translate: -50% 0;
   width: auto;
   height: auto;
   margin: 0;
@@ -474,9 +927,9 @@
   overflow: visible;
   border-radius: 9999px;
   font-family: var(--font-sans);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  outline: 2px solid #fff;
+  outline: 2px solid #f4efe2;
   outline-offset: 2px;
 }
 
@@ -491,5 +944,10 @@
   .neon-flicker-in {
     animation: none !important;
     opacity: 1 !important;
+  }
+
+  .neon-flicker-in .section-stagger > *,
+  .section-work-preview-stage {
+    animation: none !important;
   }
 }

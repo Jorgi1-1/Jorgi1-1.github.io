@@ -1,0 +1,46 @@
+.stroke-ascii-title {
+  position: relative;
+  display: inline-block;
+  vertical-align: top;
+  height: 100%;
+  max-width: 100%;
+  line-height: 0;
+}
+
+/* Carries the hover lens's mask (stroke-ascii-title.tsx). */
+.stroke-ascii-title__outline {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* A layer of its own: the ASCII canvas over it repaints every frame under
+   the pointer, and sharing a layer made WebKit redraw this outline, glow
+   and all, each time. */
+.stroke-ascii-title__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, currentColor 60%, transparent));
+  will-change: transform;
+}
+
+.stroke-ascii-title__text {
+  font-family: var(--font-display);
+  font-weight: 900;
+  user-select: none;
+}
+
+/* The canvas reads this font for its glyphs. A tight glow keeps the neon
+   family resemblance without blurring 6px characters into a smear. */
+.stroke-ascii-title__ascii {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-mono);
+  filter: drop-shadow(0 0 2px color-mix(in srgb, currentColor 45%, transparent));
+  pointer-events: none;
+  user-select: none;
+}
